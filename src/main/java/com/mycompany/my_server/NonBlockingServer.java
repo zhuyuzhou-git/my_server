@@ -2,112 +2,60 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package com.mycompany.simpleserver;
-import java.io.*;
-import java.util.Scanner;
-import java.net.*;
-import java.util.ArrayList;
+package com.mycompany.my_server;
 
 /**
  *
- * @author zyz
+ * @author Ziyue Zhou
  */
+import java.net.*;
+import java.nio.ByteBuffer;
+import java.nio.channels.*;
+import java.util.*;
 public class NonBlockingServer {
-     static final int port = 1256;
-     static ArrayList <DataOutputStream> outputIoClients = new ArrayList<>();
-     
-     
-     
-    
-    public static void main(String[] args) throws IOException {
-       
-        Scanner scanner = new Scanner(System.in);
-        ServerSocket ss= new ServerSocket(port);
-        
-       
-	String msg;
-        
-        Thread svrThread = new Thread(new ServerStart(ss));
-	svrThread.start();
-        
-        
-        while(true) {
-            int clientNumber = outputIoClients.size();
-           
-            if(clientNumber > 0) {
-                System.out.println("You have " + clientNumber + " client, Please say something, enter 'finish' to terminate them");
-                msg = scanner.nextLine();
-                for(DataOutputStream out : outputIoClients) {
-                    out.writeUTF(msg);
-                    
-                }
-                
-            }          
-            
-        }
-        
-
-    }
-    
-    
-    static class ServerStart implements Runnable {
-
-        ServerSocket ss;
-
-        ServerStart(ServerSocket s) {
-            ss = s;
-           
-        }
-
-        @Override
-        public void run() {
-            try {
-                startServer();
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-
+   public static void main(String[] args)
+         throws Exception {
+      InetAddress host = InetAddress.getByName("localhost");
+      Selector selector = Selector.open();
+      ServerSocketChannel serverSocketChannel =
+         ServerSocketChannel.open();
+      serverSocketChannel.configureBlocking(false);
+      serverSocketChannel.bind(new InetSocketAddress(host, 1254));
+      serverSocketChannel.register(selector, SelectionKey.
+         OP_ACCEPT);
+      SelectionKey key = null;
+      while (true) {
+         if (selector.select() <= 0)
+            continue;
+         Set<SelectionKey> selectedKeys = selector.selectedKeys();
+         Iterator<SelectionKey> iterator = selectedKeys.iterator();
+         while (iterator.hasNext()) {
+            key = (SelectionKey) iterator.next();
+            iterator.remove();
+            if (key.isAcceptable()) {
+               SocketChannel sc = serverSocketChannel.accept();
+               sc.configureBlocking(false);
+               sc.register(selector, SelectionKey.
+                  OP_READ);
+               System.out.println("Connection Accepted: "
+                  + sc.getLocalAddress() + "n");
             }
-        }
-
-        private void startServer() throws IOException {
-           
-            
-            while (true) {
-                Socket s = ss.accept();
-                Thread thread = new Thread(new ServerHandler(s));
-		thread.start();
+            if (key.isReadable()) {
+               SocketChannel sc = (SocketChannel) key.channel();
+               ByteBuffer bb = ByteBuffer.allocate(1024);
+               sc.read(bb);
+               String result = new String(bb.array()).trim();
+               System.out.println("Message received: " + result + " Message length= " + result.length());
+               if (result.length() <= 0) {
+                  sc.close();
+                  System.out.println("Connection closed...");
+                  System.out.println(
+                     "Server will keep running. " +
+                     "Try running another client to " +
+                     "re-establish connection");
+               }
             }
-
-        }
-
-    }
-    static class ServerHandler implements Runnable {
-	
-	Socket s;
-	
-	ServerHandler(Socket s) {
-		this.s = s;
-                try {
-			DataOutputStream out = new DataOutputStream(s.getOutputStream());
-                        outputIoClients.add(out);
-                        
-                }
-                catch (IOException e) {
-			// TODO Auto-generated catch block
-			
-		}
-                
-	}
-	
-        @Override
-	public void run() {
-		System.out.println("Connected!!");
-                
-        }
-    }
-    
+         }
+      }
+   }
 }
-
-
-
-    
