@@ -1,4 +1,4 @@
-package com.mycompany.simpleserver;
+package com.mycompany.my_server;
 
 
 
