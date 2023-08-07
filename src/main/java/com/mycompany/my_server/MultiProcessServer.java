@@ -64,6 +64,21 @@ public class MultiProcessServer {
                            DataOutputStream out = new DataOutputStream(clientSocket.getOutputStream());
                             outputIoClients.add(out);
                             System.out.println("new client in");
+                            DataInputStream inputFromServer = new DataInputStream(clientSocket.getInputStream());
+                          
+                            while (true) {
+                                String msg = inputFromServer.readUTF();
+                                System.out.println(msg);
+                                 for (DataOutputStream outother : outputIoClients) {
+                                      
+                                      outother.writeUTF(msg);
+
+                            }
+
+                                
+
+		}
+                            
                         } 
                         catch (IOException e) {
                             e.printStackTrace();
